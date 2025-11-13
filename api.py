@@ -37,4 +37,9 @@ async def scrape_news(category: str = Query(..., description="新聞分類"),
         }
         return {"status": "success", "data": picked_news}
     except Exception as e:
+
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/")
+def read_root():
+    return {"status": "OK"}
