@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from dotenv import load_dotenv
 from news_crawler import NewsCrawler
 from news_class import News
+from anyio import to_thread
 
 
 load_dotenv()
@@ -17,7 +18,7 @@ def get_news_crawler() -> NewsCrawler:
     }
     return NewsCrawler(headers=headers)
 
-@app.get("/api/scrape-news/")
+@app.get("/api/scrape-specific-news/")
 async def scrape_news(category: str = Query(..., description="新聞分類"),
                     crawler: NewsCrawler = Depends(get_news_crawler)):
     """根據指定的新聞分類抓取新聞並返回結果"""
@@ -37,8 +38,27 @@ async def scrape_news(category: str = Query(..., description="新聞分類"),
         }
         return {"status": "success", "data": picked_news}
     except Exception as e:
-
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+def scrape_single_category_sync(crawler, category):
+    crawler.reset_lists()
+
+    news_category = News(source_type=category)
+    crawler.generate_URLs(news_category.source_url)
+    crawler.news_crawler()
+
+    urllist = crawler.url_list
+    titlelist = crawler.title_list
+    contents = crawler.content_list
+
+    picked_news = {
+            "category": category,
+            "url": urllist,
+            "title": titlelist,
+            "content": contents
+            }
+    return picked_news
 
 @app.get("/api/scrape-all-news/")
 async def scrape_all_news(crawler: NewsCrawler = Depends(get_news_crawler)):
@@ -47,28 +67,15 @@ async def scrape_all_news(crawler: NewsCrawler = Depends(get_news_crawler)):
     
     try:
         for category in category_list:
-            news_category = News(source_type=category)
-            crawler.generate_URLs(news_category.source_url)
-            crawler.news_crawler()
-
-            urllist = crawler.url_list
-            titlelist = crawler.title_list
-            contents = crawler.content_list
-
-            picked_news = {
-                    "category": category,
-                    "url": urllist,
-                    "title": titlelist,
-                    "content": contents
-            }
+            picked_news = await to_thread.run_sync(scrape_single_category_sync, crawler, category)
             all_news_list.append(picked_news)
+
         return {"status": "success", "data": all_news_list}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in category {category}: {str(e)}")
-
-
+    
+        
 @app.get("/")
 def read_root():
     return {"status": "OK"}
-
