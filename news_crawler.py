@@ -199,7 +199,11 @@ class NewsCrawler:
     self.history_url_list.update(url_set)
     print(self.history_title_list, self.history_url_list)
 
-
+  def reset_lists(self):
+    """ 清空所有內部列表以準備下一次爬取 """
+    self.url_list = []
+    self.title_list = []
+    self.content_list = []
 
 if __name__ == "__main__":
   #url = "https://money.udn.com/money/cate/11111?from=edn_navibar"
