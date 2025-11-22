@@ -20,7 +20,7 @@ class NewsCrawler:
     self.history_url_list = set()
     self.history_title_list = set()
 
-  def _generate_uni_news_list(self, any_list):
+  """def _generate_uni_news_list(self, any_list):
     uni_new_list = set()
     _list = []
     for item in any_list:
@@ -35,7 +35,7 @@ class NewsCrawler:
         if item not in uni_new_list:
           uni_new_list.add(item)
           _list.append(item)
-    return _list
+    return _list"""
 
 
 
@@ -56,6 +56,10 @@ class NewsCrawler:
       soup = BeautifulSoup(response.text, 'html.parser')
 
       article_container = soup.find_all('div', class_='story__content')
+
+      seen_url_ids = set() # 建立一個 Set 來記錄已處理的 URL ID，確保唯一性
+      unique_news_data = [] # 建立一個 List of Tuples 來儲存 (URL, Title)，確保兩者對齊
+      
       for article in article_container:
         link_tags = article.find_all("a")
 
@@ -67,21 +71,27 @@ class NewsCrawler:
 
             if link_tag.get('data-content_level') == "開放閱讀" and news_date == self._TWstandardtime() and "edn_maintab_cate" not in link_tag.get("href"):
               news_title = link_tag.select_one("h3.story__headline").get_text().strip()
-              self.title_list.append(news_title)
+              #self.title_list.append(news_title)
               url = "https://money.udn.com/" + link_tag.get('href')
-              self.url_list.append(url)
+              #self.url_list.append(url)
+              parsed_url = urlparse(url)
+              url_id = parsed_url.path.split("/")[-1]
 
-      self.title_list = self._generate_uni_news_list(self.title_list)
-      self.url_list = self._generate_uni_news_list(self.url_list)
+              if url_id not in seen_url_ids:
+                seen_url_ids.add(url_id)
+                unique_news_data.append((url,news_title))
+      '''self.title_list = self._generate_uni_news_list(self.title_list)
+      self.url_list = self._generate_uni_news_list(self.url_list)'''
 
-      if len(self.url_list) == len(self.title_list):
-        if len(self.url_list) == 0:
-          raise Exception("此專區今日尚無新聞")
-        else:
-          return self.url_list, self.title_list
 
+      if len(unique_news_data) == 0:
+        raise Exception("此專區今日尚無新聞")
       else:
-        raise Exception("連結數與標題數不相同")
+        final_url_list, final_title_list = zip(*unique_news_data)
+
+        self.url_list = list(final_url_list)
+        self.title_list = list(final_title_list)
+        return self.url_list, self.title_list
 
     except Exception as e:
       return(f"出現問題: {e}")
@@ -221,5 +231,6 @@ if __name__ == "__main__":
   #News_Crawler.news_crawler()
   #News_Crawler.store_news()
   #News_Crawler.update_news()
+
 
 
