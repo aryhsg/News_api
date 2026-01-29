@@ -6,3 +6,5 @@ tzdata
 dotenv
 uvicorn
 fastapi
+anyio
+asyncio
