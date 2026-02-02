@@ -119,10 +119,10 @@ class NewsCrawler:
             # 2. 提取文字並去除空白
             text = tag.get_text().strip()
             if text:
-                self.keywords_list.append(text)
+              keywords_list.append(text)
         
         # print 檢查一下
-        print(f"抓取到的關鍵字: {keywords}")
+        print(f"抓取到的關鍵字: {keywords_list}")
         
         # 3. 回傳列表 (例如: ['勞動基金', '股市', ...])
         return keywords_list
