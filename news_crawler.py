@@ -108,45 +108,31 @@ class NewsCrawler:
 
   def _extract_article_content(self, response):
 
-    news_title_list = []
-
+    # 1. 先給一個預設值，確保變數一定存在
+    news_title = "無標題"
+    
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    if soup.title:
-      news_title = soup.title.string
-      news_title_list.append(news_title)
+    # 2. 嘗試抓取並覆蓋預設值
+    if soup.title and soup.title.string:
+        news_title = soup.title.string.strip() # 建議加上 strip() 去除前後空白
     else:
-      print("無標題")
+        print("未抓到網頁標題 tag")
 
+    # 3. 現在無論上面走哪條路，news_title 都一定有值，print 就不會報錯了
     print(f"新聞標題: {news_title}", flush=True)
+    
+    # --- 以下維持原本邏輯 ---
     article_container = soup.select_one('section.article-body__editor, section.article-body')
 
     if article_container is None:
         print("!!! 警告：找不到文章內容容器 !!!", flush=True)
-        return
+        return None # 建議回傳 None 讓呼叫端知道失敗
 
-    # 3. 提取所有段落文字
-    elif article_container:
-        # 找到容器內所有 <p> 標籤
-        paragraphs = article_container.find_all('p')
-
-        # 提取文字並合併
-        article_text = []
-        for p in paragraphs:
-            text = p.get_text().strip()
-            # 過濾掉可能存在的空行或廣告文字
-            if text and not text.startswith("※"):
-                article_text.append(text)
-
-        # 合併成一個乾淨的長字串
-        final_article = '\n\n'.join(article_text)
-        if len(final_article) == 0:
-          print("沒抓到文章")
-        else:
-          return final_article
-
-    else:
-        return("❌ 找不到文章內容的容器。您可能需要檢查網頁原始碼以取得正確的 CSS 選擇器。")
+    # ... (中間省略) ...
+    
+    # 4. 記得最後要回傳內容 (如果需要標題，這裡也可以改成 return news_title, final_article)
+    return final_article
 
   def news_crawler(self):
     print(f"準備開始抓取 {len(self.url_list)} 筆新聞...")
