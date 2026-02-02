@@ -15,10 +15,12 @@ class NewsCrawler:
     self.headers = headers
     self.url_list = []
     self.title_list = []
+    self.image_list = []
     self.content_list = []
     self.all_news_list = []
     self.history_url_list = set()
     self.history_title_list = set()
+    self.DEFAULT_IMAGE = "https://pgw.udn.com.tw/gw/photo.php?u=https://udn.com/upf/2017_news/noimg_cid6638_5.jpg"
 
   def _generate_uni_news_list(self, any_list):
     uni_new_list = set()
@@ -87,7 +89,22 @@ class NewsCrawler:
       return(f"出現問題: {e}")
 
 
+  def _extract_image(self, response):
 
+    soup = BeautifulSoup(response.text, 'html.parser')
+    try:
+      if soup.figure:
+        target_img = soup.select_one(".article-image a")
+        if target_img and target_img.get('href'):
+          print("抓取到圖片")
+          return target_img['href']
+        
+      print("此新聞無照片，使用預設圖")
+      return self.DEFAULT_IMAGE
+
+    except Exception as e:
+      print(f"error occured: {e}")
+      return self.DEFAULT_IMAGE
 
 
   def _extract_article_content(self, response):
@@ -139,7 +156,7 @@ class NewsCrawler:
     try:
       for  i, url in enumerate(self.url_list):
         print(f"\n------開始抓取第{i+1}筆新聞------\n")
-        response1 = requests.get(url, self.headers)
+        response1 = requests.get(url, headers=self.headers)
         response1.encoding = 'utf-8'  # 確保中文不亂碼
         # 獲取網頁內容
         if response1.status_code != 200:
@@ -149,14 +166,22 @@ class NewsCrawler:
           time.sleep(1)
 
           content = self._extract_article_content(response1)
+          
           if content is None:
             print("\n------沒抓到文章...------\n")
             return None
           else:
+            image = self._extract_image(response1)
+
             self.content_list.append(content)
+            if image:
+              self.image_list.append(image)
+            else:
+              print("error occured. no image, append DEFAULT IMAGE.")
+              self.image_list.append(image)
           print(f"\n------第{i+1}筆新聞抓取完成------\n")
 
-      return self.content_list
+      return self.content_list, self.image_list
     except requests.exceptions.RequestException as e:
       print(f"\n------連線失敗...錯誤為:{e}------\n")
       return None
