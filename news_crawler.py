@@ -161,23 +161,23 @@ class NewsCrawler:
           continue # 跳過這一筆，繼續下一筆
 
           # 建立 Soup 物件 (只要建一次就好，傳給下面函式用)
-          soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-          # 1. 抓內容
-          content = self._extract_article_content(soup)
+        # 1. 抓內容
+        content = self._extract_article_content(soup)
                 
-          # 2. 抓圖片 (即使內容沒抓到，也可以考慮要不要抓圖，但通常沒內容就跳過)
-          if content:
-            image = self._extract_news_image(soup)
+        # 2. 抓圖片 (即使內容沒抓到，也可以考慮要不要抓圖，但通常沒內容就跳過)
+        if content:
+          image = self._extract_news_image(soup)
                     
-            # 存入列表 (確保成對存入)
-            self.content_list.append(content)
-            self.image_list.append(image)
-            print(f"✅ 第 {i+1} 筆成功入庫")
-          else:
-            print(f"❌ 第 {i+1} 筆失敗：無內容")
+          # 存入列表 (確保成對存入)
+          self.content_list.append(content)
+          self.image_list.append(image)
+          print(f"✅ 第 {i+1} 筆成功入庫")
+        else:
+          print(f"❌ 第 {i+1} 筆失敗：無內容")
 
-            time.sleep(1) # 禮貌性延遲
+          time.sleep(1) # 禮貌性延遲
 
       except Exception as e:
         print(f"抓取過程發生錯誤: {e}")
