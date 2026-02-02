@@ -129,10 +129,31 @@ class NewsCrawler:
         print("!!! 警告：找不到文章內容容器 !!!", flush=True)
         return None # 建議回傳 None 讓呼叫端知道失敗
 
-    # ... (中間省略) ...
-    
-    # 4. 記得最後要回傳內容 (如果需要標題，這裡也可以改成 return news_title, final_article)
-    return final_article
+    elif article_container:
+
+        # 找到容器內所有 <p> 標籤
+      paragraphs = article_container.find_all('p')
+
+        # 提取文字並合併
+      article_text = []
+
+      for p in paragraphs:
+        text = p.get_text().strip()
+
+            # 過濾掉可能存在的空行或廣告文字
+
+        if text and not text.startswith("※"):
+            article_text.append(text)
+
+        # 合併成一個乾淨的長字串
+
+      final_article = '\n\n'.join(article_text)
+
+      if len(final_article) == 0:
+        print("沒抓到文章")
+
+      else:
+        return final_article
 
   def news_crawler(self):
     print(f"準備開始抓取 {len(self.url_list)} 筆新聞...")
