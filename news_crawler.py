@@ -118,7 +118,7 @@ class NewsCrawler:
         for tag in keyword_tags:
             # 2. 提取文字並去除空白
             text = tag.get_text().strip()
-            if text:
+            if text and (text not in keywords_list):
               keywords_list.append(text)
         
         # print 檢查一下
@@ -191,7 +191,7 @@ class NewsCrawler:
 
           content = self._extract_article_content(response1)
           keywords = self._extract_keywords(response1)
-          self.keywords_list = keywords
+          self.keywords_list.append(keywords)
           if content is None:
             print("\n------沒抓到文章...------\n")
             return None
