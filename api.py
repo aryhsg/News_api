@@ -34,6 +34,7 @@ def scrape_task_sync(category: str):
 
     return {
         "category": category,
+        "keyword": crawler.keywords_list,
         "image": crawler.image_list,
         "url": crawler.url_list,
         "title": crawler.title_list,

@@ -16,6 +16,7 @@ class NewsCrawler:
     self.url_list = []
     self.title_list = []
     self.image_list = []
+    self.keywords_list = []
     self.content_list = []
     self.all_news_list = []
     self.history_url_list = set()
@@ -106,6 +107,29 @@ class NewsCrawler:
       print(f"error occured: {e}")
       return self.DEFAULT_IMAGE
 
+  def _extract_keywords(self, response):
+    try:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        keywords_list = []
+        # 1. 使用 CSS Selector 抓取所有關鍵字連結
+        keyword_tags = soup.select(".article-keyword__item a")
+        
+
+        for tag in keyword_tags:
+            # 2. 提取文字並去除空白
+            text = tag.get_text().strip()
+            if text:
+                self.keywords_list.append(text)
+        
+        # print 檢查一下
+        print(f"抓取到的關鍵字: {keywords}")
+        
+        # 3. 回傳列表 (例如: ['勞動基金', '股市', ...])
+        return keywords_list
+
+    except Exception as e:
+        print(f"keyword_error: {e}")
+        return []
 
   def _extract_article_content(self, response):
 
@@ -166,7 +190,8 @@ class NewsCrawler:
           time.sleep(1)
 
           content = self._extract_article_content(response1)
-          
+          keywords = self._extract_keywords(response1)
+          self.keywords_list = keywords
           if content is None:
             print("\n------沒抓到文章...------\n")
             return None
@@ -181,7 +206,7 @@ class NewsCrawler:
               self.image_list.append(image)
           print(f"\n------第{i+1}筆新聞抓取完成------\n")
 
-      return self.content_list, self.image_list
+      return self.content_list, self.image_list, self.keywords_list
     except requests.exceptions.RequestException as e:
       print(f"\n------連線失敗...錯誤為:{e}------\n")
       return None
