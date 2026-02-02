@@ -94,15 +94,10 @@ class NewsCrawler:
     soup = BeautifulSoup(response.text, "html.parser")
     try: 
       if soup.figure: 
-        target_img = soup.select_one(".article-image img")
-        if target_img:
-          # 優先檢查是否有懶加載的 data-src
-          if target_img.get('data-srcset'):
-            print("抓取到圖片 (data-srcset)")
-            return target_img['data-srcset']
-          elif target_img.get('srcset'):
-            print("抓取到圖片 (srcset)")
-            return target_img['srcset']
+        target_img = soup.select_one(".article-image a")
+        if target_img and target_link.get('href'):
+          print("抓取到圖片 (data-srcset)")
+          return target_img['data-srcset']
         
       print("此新聞無圖片，使用預設圖")
       return self.DEFAULT_IMAGE
