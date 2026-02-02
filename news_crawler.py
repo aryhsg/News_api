@@ -202,7 +202,7 @@ class NewsCrawler:
 
 
 if __name__ == "__main__":
-  #url = "https://money.udn.com/money/cate/11111?from=edn_navibar"
+  url = "https://money.udn.com/money/cate/11111?from=edn_navibar"
 
   headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
