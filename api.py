@@ -36,7 +36,8 @@ def scrape_task_sync(category: str):
         "category": category,
         "url": crawler.url_list,
         "title": crawler.title_list,
-        "content": crawler.content_list
+        "content": crawler.content_list,
+        "image": crawler.image_list
     }
 
 async def semaphore_scrape(category: str):

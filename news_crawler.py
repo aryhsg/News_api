@@ -16,9 +16,11 @@ class NewsCrawler:
     self.url_list = []
     self.title_list = []
     self.content_list = []
+    self.image_list = []
     self.all_news_list = []
     self.history_url_list = set()
     self.history_title_list = set()
+    self.DEFAULT_IMAGE = "https://pgw.udn.com.tw/gw/photo.php?u=https://udn.com/upf/2017_news/noimg_cid6638_5.jpg"
 
   def _generate_uni_news_list(self, any_list):
     uni_new_list = set()
@@ -87,8 +89,27 @@ class NewsCrawler:
       return(f"出現問題: {e}")
 
 
+  def _extract_news_image(self, response):
 
+    soup = BeautifulSoup(response.text, "html.parser")
+    try: 
+      if soup.figure: 
+        target_img = soup.select_one(".article-image img")
+        if target_img:
+          # 優先檢查是否有懶加載的 data-src
+          if target_img.get('data-srcset'):
+            print("抓取到圖片 (data-srcset)")
+            return target_img['data-srcset']
+          elif target_img.get('srcset'):
+            print("抓取到圖片 (srcset)")
+            return target_img['srcset']
+        
+      print("此新聞無圖片，使用預設圖")
+      return self.DEFAULT_IMAGE
 
+    except Exception as e:
+      print(f"image_error: {e}")
+      return self.DEFAULT_IMAGE
 
   def _extract_article_content(self, response):
 
@@ -132,9 +153,45 @@ class NewsCrawler:
     else:
         return("❌ 找不到文章內容的容器。您可能需要檢查網頁原始碼以取得正確的 CSS 選擇器。")
 
-
-
   def news_crawler(self):
+    print(f"準備開始抓取 {len(self.url_list)} 筆新聞...")
+        
+    for i, url in enumerate(self.url_list):
+      print(f"\n------開始抓取第 {i+1} 筆新聞------")
+      try:
+        response = requests.get(url, headers=self.headers, timeout=10) # 建議加上 timeout
+                
+        if response.status_code != 200:
+          print(f"請求失敗: {response.status_code}")
+          continue # 跳過這一筆，繼續下一筆
+
+          # 建立 Soup 物件 (只要建一次就好，傳給下面函式用)
+          soup = BeautifulSoup(response.text, 'html.parser')
+
+          # 1. 抓內容
+          content = self._extract_article_content(soup)
+                
+          # 2. 抓圖片 (即使內容沒抓到，也可以考慮要不要抓圖，但通常沒內容就跳過)
+          if content:
+            image = self._extract_news_image(soup)
+                    
+            # 存入列表 (確保成對存入)
+            self.content_list.append(content)
+            self.image_list.append(image)
+            print(f"✅ 第 {i+1} 筆成功入庫")
+          else:
+            print(f"❌ 第 {i+1} 筆失敗：無內容")
+
+            time.sleep(1) # 禮貌性延遲
+
+      except Exception as e:
+        print(f"抓取過程發生錯誤: {e}")
+        continue
+
+    print("\n所有新聞抓取完成！")
+    return self.content_list, self.image_list
+
+  """def news_crawler(self):
 
     try:
       for  i, url in enumerate(self.url_list):
@@ -148,19 +205,25 @@ class NewsCrawler:
         else:
           time.sleep(1)
 
+          image = self._extract_news_image(response1)
           content = self._extract_article_content(response1)
           if content is None:
             print("\n------沒抓到文章...------\n")
             return None
           else:
-            self.content_list.append(content)
-          print(f"\n------第{i+1}筆新聞抓取完成------\n")
+            if image not None:
+              self.image_list.append(image)
+              self.content_list.append(content)
+            else:
+              print("沒抓到照片")
 
-      return self.content_list
+            print(f"\n------第{i+1}筆照片、新聞抓取完成------\n")
+
+      return self.content_list, self.image_list
     except requests.exceptions.RequestException as e:
       print(f"\n------連線失敗...錯誤為:{e}------\n")
       return None
-
+"""
 
   def store_news(self):
 
