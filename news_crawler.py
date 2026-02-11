@@ -7,6 +7,7 @@ import time
 import datetime
 import pytz
 from zoneinfo import ZoneInfo
+import re
 
 class NewsCrawler:
   def __init__(self, headers):
@@ -132,46 +133,64 @@ class NewsCrawler:
         return []
 
   def _extract_article_content(self, response):
-
-    news_title_list = []
-
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    if soup.title:
-      news_title = soup.title.string
-      news_title_list.append(news_title)
-    else:
-      print("無標題")
+    # 1. 鎖定最核心的文章容器
+    article_container = soup.find('section', id='article_body')
+    if not article_container:
+        article_container = soup.select_one('.article-body__editor')
 
-    print(f"新聞標題: {news_title}", flush=True)
-    article_container = soup.select_one('section.article-body__editor, section.article-body')
+    if article_container:
+        # 2. 定義要刪除的「雜物」選取器清單
+        junk_selectors = [
+            '.edn-ads--inlineAds',       # 廣告
+            '.article-body__social-bar', # 社交分享按鈕
+            '.article-keyword',          # 關鍵字標籤
+            '.article-length',           # 本文共xx字
+            '.article-body__time',       # 時間
+            '.article-body__info',       # 記者資訊
+            '.further-reading',          # 延伸閱讀區塊
+            'audio',                     # 音訊標籤
+            '.mp',                       # 播放器控制列
+            'script',                    # 腳本
+            'style'                      # 內嵌樣式
+        ]
 
-    if article_container is None:
-        print("!!! 警告：找不到文章內容容器 !!!", flush=True)
-        return
+        # 執行大掃除：移除不必要的標籤
+        for selector in junk_selectors:
+            for junk in article_container.select(selector):
+                junk.decompose()
 
-    # 3. 提取所有段落文字
-    elif article_container:
-        # 找到容器內所有 <p> 標籤
-        paragraphs = article_container.find_all('p')
+        # 3. 處理「文中延伸閱讀」連結 (<li> 或 <p> 包裹的連結)
+        for reading_link in article_container.find_all('a', {'data-slotname': 'list_文中延伸閱讀'}):
+            # 優先刪除包裹它的父標籤，避免留下空的 <li> 或 <p>
+            parent = reading_link.find_parent(['p', 'li'])
+            if parent:
+                parent.decompose()
+            else:
+                reading_link.decompose()
 
-        # 提取文字並合併
-        article_text = []
-        for p in paragraphs:
-            text = p.get_text().strip()
-            # 過濾掉可能存在的空行或廣告文字
-            if text and not text.startswith("※"):
-                article_text.append(text)
+        # 4. 清理剩餘的 <p> 標籤屬性
+        for p in article_container.find_all('p'):
+            p.attrs = {}  # 移除所有屬性 (例如 style, class)
+            
+            # 如果 <p> 標籤內完全沒有內容或只有空白，則移除該標籤
+            if not p.get_text(strip=True):
+                p.decompose()
 
-        # 合併成一個乾淨的長字串
-        final_article = '\n\n'.join(article_text)
-        if len(final_article) == 0:
-          print("沒抓到文章")
-        else:
-          return final_article
+        # 5. 取得 HTML 字串內容
+        final_html = article_container.decode_contents()
 
-    else:
-        return("❌ 找不到文章內容的容器。您可能需要檢查網頁原始碼以取得正確的 CSS 選擇器。")
+        # 6. 正則表達式清理：移除所有 HTML 註釋 (如 , )
+        # r'' 是比對註釋的標準寫法
+        final_html = re.sub(r'', '', final_html)
+
+        # 7. 最後清理：移除多餘的換行與頭尾空白
+        final_html = "".join(final_html.splitlines()) # 這會移除所有類型的換行並合併字串
+        
+        return final_html.strip()
+
+    return "❌ 找不到文章內容"
 
 
 
@@ -261,11 +280,12 @@ if __name__ == "__main__":
       'Referer': 'https://money.udn.com/'
     }
 
-  News_Crawler = NewsCrawler(headers)
-  News_Crawler.generate_URLs(url=url)
-  print(News_Crawler.url_list)
+  #News_Crawler = NewsCrawler(headers)
+  #News_Crawler.generate_URLs(url=url)
+  #print(News_Crawler.url_list)
   #News_Crawler.news_crawler()
   #News_Crawler.store_news()
   #News_Crawler.update_news()
+  #print(News_Crawler.all_news_list)
 
 
