@@ -1,6 +1,7 @@
 import asyncio
 import os
-from fastapi import FastAPI, Depends, HTTPException, Query
+from dotenv import load_dotenv
+from fastapi import FastAPI, Depends, HTTPException, Query, Header
 from dotenv import load_dotenv
 from news_crawler import NewsCrawler
 from news_class import News
@@ -41,6 +42,12 @@ def scrape_task_sync(category: str):
         "content": crawler.content_list
     }
 
+async def verify_cron_token(x_cron_token: str = Header(None)):
+    expected_token = os.getenv("CRON_TOKEN")
+    if x_cron_token != expected_token:
+        raise HTTPException(status_code=403, detail="Invalid cron token")
+    return True
+
 async def semaphore_scrape(category: str):
     """控制併發數量的包裝函式"""
     async with sem: # <--- (最多 2 個任務同時進行)
@@ -50,7 +57,7 @@ async def semaphore_scrape(category: str):
         await asyncio.sleep(1) 
         return result
 
-@app.get("/api/scrape-all-news/")
+@app.get("/api/scrape-all-news/", dependencies=[Depends(verify_cron_token)])
 async def scrape_all_news():
     category_list = ["要聞", "產業", "證券", "國際", "金融", "期貨", "理財", "房市", "專欄", "專題", "商情", "兩岸"]
     
